@@ -3,40 +3,40 @@ from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfigura
 import cv2
 import numpy as np
 from deepface import DeepFace
-import face_recognition
-import base64
 import requests
+import base64
 
-# RTC Configuration for WebRTC (works online)
+# RTC Configuration for WebRTC
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-# Predefined known faces (encoded remotely or hardcoded for simplicity)
-# For online use, we'll simulate loading known faces from a GitHub-hosted image
-KNOWN_FACES = {}
+# Predefined known face embeddings (loaded from GitHub-hosted images)
+KNOWN_EMBEDDINGS = {}
 KNOWN_NAMES = {}
 
-# Function to load an image from a URL and encode it
-def load_image_from_url(url):
-    response = requests.get(url)
-    img_array = np.array(bytearray(response.content), dtype=np.uint8)
-    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-    rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    encodings = face_recognition.face_encodings(rgb_img)
-    return encodings[0] if encodings else None
+# Function to load an image from a URL and get its embedding
+def load_image_embedding_from_url(url):
+    try:
+        response = requests.get(url)
+        img_array = np.array(bytearray(response.content), dtype=np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        embedding = DeepFace.represent(img, model_name="Facenet", enforce_detection=False)[0]["embedding"]
+        return embedding
+    except:
+        return None
 
-# Load known faces from GitHub-hosted images (replace with your GitHub raw URLs)
+# Initialize known faces from GitHub-hosted images
 def initialize_known_faces():
-    global KNOWN_FACES, KNOWN_NAMES
+    global KNOWN_EMBEDDINGS, KNOWN_NAMES
     known_face_urls = {
         "Person1": "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/known_faces/person1.jpg",
         "Person2": "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/known_faces/person2.jpg"
     }
     for name, url in known_face_urls.items():
-        encoding = load_image_from_url(url)
-        if encoding is not None:
-            KNOWN_FACES[name] = encoding
+        embedding = load_image_embedding_from_url(url)
+        if embedding is not None:
+            KNOWN_EMBEDDINGS[name] = embedding
             KNOWN_NAMES[name] = name  # Could be PRN instead
 
 # Video Transformer Class for Real-Time Processing
@@ -50,32 +50,33 @@ class EmotionAndFaceRecognition(VideoTransformerBase):
         img = frame.to_ndarray(format="bgr24")
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(img_gray, 1.3, 5)
-        
-        # Convert to RGB for face_recognition
-        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         for (x, y, w, h) in faces:
             # Draw rectangle around face
             cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
             
-            # Extract face ROI for emotion detection
+            # Extract face ROI
             face_roi = img[y:y + h, x:x + w]
+            
+            # Detect emotion
             try:
-                # Detect emotion using DeepFace
                 result = DeepFace.analyze(face_roi, actions=['emotion'], enforce_detection=False)
                 emotion = result[0]['dominant_emotion']
             except:
                 emotion = "Unknown"
 
-            # Face recognition
-            face_encoding = face_recognition.face_encodings(rgb_img, [(y, x + w, y + h, x)])
-            name = "Unknown"
-            if face_encoding:
-                for known_name, known_encoding in KNOWN_FACES.items():
-                    match = face_recognition.compare_faces([known_encoding], face_encoding[0])
-                    if match[0]:
+            # Simulate face recognition with embeddings
+            try:
+                current_embedding = DeepFace.represent(face_roi, model_name="Facenet", enforce_detection=False)[0]["embedding"]
+                name = "Unknown"
+                min_dist = float("inf")
+                for known_name, known_embedding in KNOWN_EMBEDDINGS.items():
+                    dist = np.linalg.norm(np.array(current_embedding) - np.array(known_embedding))
+                    if dist < min_dist and dist < 0.6:  # Threshold for similarity
+                        min_dist = dist
                         name = KNOWN_NAMES[known_name]
-                        break
+            except:
+                name = "Unknown"
 
             # Display name and emotion
             label = f"{name} - {emotion}"
@@ -89,7 +90,7 @@ def main():
     st.write("This app detects faces, recognizes them, and identifies emotions using your webcam.")
 
     # Initialize known faces
-    if not KNOWN_FACES:
+    if not KNOWN_EMBEDDINGS:
         with st.spinner("Loading known faces..."):
             initialize_known_faces()
 
