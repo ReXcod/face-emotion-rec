@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration, WebRtcMode
 import cv2
 import numpy as np
 from deepface import DeepFace
@@ -49,7 +49,7 @@ def main():
     # Start webcam streaming
     webrtc_streamer(
         key="example",
-        mode="sendrecv",
+        mode=WebRtcMode.SENDRECV,  # Use enum instead of string
         rtc_configuration=RTC_CONFIGURATION,
         video_transformer_factory=EmotionDetection,
     )
