@@ -1,0 +1,7 @@
+streamlit
+streamlit-webrtc
+opencv-python-headless
+deepface
+face_recognition
+numpy
+requests
