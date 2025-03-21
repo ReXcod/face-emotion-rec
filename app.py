@@ -34,27 +34,19 @@ class EmotionDetection(VideoTransformerBase):
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             faces = self.face_cascade.detectMultiScale(img_gray, 1.3, 5)
 
-            # Debugging output
             st.write(f"Frame shape: {img.shape}, Faces detected: {len(faces)}")
 
             if len(faces) == 0:
                 cv2.putText(img, "No faces detected", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             else:
                 for (x, y, w, h) in faces:
-                    # Draw rectangle around face
                     cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                    
-                    # Extract face ROI
                     face_roi = img[y:y + h, x:x + w]
-                    
-                    # Detect emotion with DeepFace
                     try:
                         result = DeepFace.analyze(face_roi, actions=['emotion'], enforce_detection=False)
                         emotion = result[0]['dominant_emotion']
                     except Exception as e:
                         emotion = f"Error: {str(e)}"
-
-                    # Display label
                     label = f"Unknown - {emotion}"
                     cv2.putText(img, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
@@ -81,8 +73,10 @@ def main():
             mode=WebRtcMode.SENDRECV,
             rtc_configuration=RTC_CONFIGURATION,
             video_transformer_factory=EmotionDetection,
-            async_processing=True,
+            # Removed async_processing to test stability
         )
+        if webrtc_ctx.state.signaling:
+            status.info("WebRTC signaling is active (device selected)")
         if webrtc_ctx.state.playing:
             status.success("Webcam is active and streaming")
         else:
