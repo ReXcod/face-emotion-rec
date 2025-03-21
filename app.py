@@ -54,8 +54,12 @@ def main():
     st.title("Real-Time Emotion Detection")
     st.write("This app detects faces and will identify emotions using your webcam.")
 
-    # Placeholder for WebRTC status
+    # Status placeholder
     status = st.empty()
+
+    # Refresh button
+    if st.button("Refresh Webcam"):
+        st.experimental_rerun()
 
     try:
         webrtc_ctx = webrtc_streamer(
@@ -66,12 +70,12 @@ def main():
             async_processing=True,
         )
         if webrtc_ctx.state.playing:
-            status.success("Webcam is active")
+            status.success("Webcam is active and streaming")
         else:
-            status.warning("Webcam is not streaming")
+            status.warning("Webcam is not streaming - check permissions or refresh")
     except Exception as e:
         status.error(f"WebRTC Error: {str(e)}")
-        st.write("Try refreshing the page or checking webcam permissions.")
+        st.write("Troubleshooting: Ensure webcam permissions are granted, no other apps are using the camera, and try a different browser.")
 
 if __name__ == "__main__":
     main()
