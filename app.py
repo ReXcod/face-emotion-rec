@@ -4,9 +4,15 @@ import cv2
 import numpy as np
 from deepface import DeepFace
 
-# RTC Configuration for WebRTC
+# RTC Configuration for WebRTC with multiple STUN servers
 RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    {
+        "iceServers": [
+            {"urls": "stun:stun.l.google.com:19302"},
+            {"urls": "stun:stun1.l.google.com:19302"},
+            {"urls": "stun:stun2.l.google.com:19302"}
+        ]
+    }
 )
 
 # Video Transformer Class for Real-Time Processing
@@ -49,7 +55,7 @@ def main():
     # Start webcam streaming
     webrtc_streamer(
         key="example",
-        mode=WebRtcMode.SENDRECV,  # Use enum instead of string
+        mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         video_transformer_factory=EmotionDetection,
     )
