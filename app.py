@@ -73,17 +73,16 @@ def main():
             mode=WebRtcMode.SENDRECV,
             rtc_configuration=RTC_CONFIGURATION,
             video_transformer_factory=EmotionDetection,
-            # Removed async_processing to test stability
+            media_stream_constraints={"video": True, "audio": False},  # Explicitly request video
+            async_processing=False,  # Keep synchronous for stability
         )
-        if webrtc_ctx.state.signaling:
-            status.info("WebRTC signaling is active (device selected)")
         if webrtc_ctx.state.playing:
             status.success("Webcam is active and streaming")
         else:
-            status.warning("Webcam is not streaming - check permissions or refresh")
+            status.warning("Webcam is not streaming - check permissions or click 'Start' after selecting device")
     except Exception as e:
         status.error(f"WebRTC Error: {str(e)}")
-        st.write("Troubleshooting: Ensure webcam permissions are granted, no other apps are using the camera, and try a different browser.")
+        st.write("Troubleshooting: Select a device, click 'Start', and ensure permissions are granted.")
 
 if __name__ == "__main__":
     main()
